@@ -11,8 +11,9 @@ import {
 	getCurrent,
 	logout,
 	patchSubscription,
+	updateAvatar,
 } from "../../controllers/authController.js";
-import { isEmptyBody, authenticate } from "../../middlewares/index.js";
+import { isEmptyBody, authenticate, upload } from "../../middlewares/index.js";
 
 const router = express.Router();
 
@@ -39,6 +40,13 @@ router.patch(
 	authenticate,
 	validateBody(patchSubscriptionSchema),
 	ctrlWrapper(patchSubscription)
+);
+
+router.patch(
+	"/avatars",
+	authenticate,
+	upload.single("avatar"),
+	ctrlWrapper(updateAvatar)
 );
 
 export default router;

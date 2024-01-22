@@ -79,3 +79,5 @@ export const patchSubscription = async (req, res) => {
 	}
 	res.status(200).json(result);
 };
+
+export const updateAvatar = async (req, res) => {};
