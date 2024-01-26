@@ -13,7 +13,12 @@ import {
 	patchSubscription,
 	updateAvatar,
 } from "../../controllers/authController.js";
-import { isEmptyBody, authenticate, upload } from "../../middlewares/index.js";
+import {
+	isEmptyBody,
+	authenticate,
+	upload,
+	checkAvatarUpload,
+} from "../../middlewares/index.js";
 
 const router = express.Router();
 
@@ -46,6 +51,7 @@ router.patch(
 	"/avatars",
 	authenticate,
 	upload.single("avatar"),
+	checkAvatarUpload,
 	ctrlWrapper(updateAvatar)
 );
 
