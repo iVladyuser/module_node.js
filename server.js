@@ -12,6 +12,6 @@ mongoose
 		});
 	})
 	.catch((error) => {
-		console.log(error.message);
+		console.log(error);
 		process.exit(1);
 	});
