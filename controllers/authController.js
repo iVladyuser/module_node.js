@@ -14,23 +14,17 @@ export const register = async (req, res) => {
 	const { email, password } = req.body;
 	const user = await User.findOne({ email });
 
-	if (user !== null) {
+	if (user) {
 		throw HttpError(409, "Email in use");
 	}
 
 	const hashPassword = await bcrypt.hash(password, 10);
 	const avatarURL = gravatar.url(email);
-
 	const newUser = await User.create({
 		...req.body,
 		password: hashPassword,
 		avatarURL,
 	});
-
-	if (user.avatar === null) {
-		return res.status(404).send({ message: "Avatar not found" });
-	}
-
 	res.status(201).json({
 		user: {
 			email: newUser.email,
