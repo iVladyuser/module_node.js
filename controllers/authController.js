@@ -1,20 +1,30 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import gravatar from "gravatar";
+import path from "path";
+import fs from "fs/promises";
+import Jimp from "jimp";
 
 import HttpError from "../helpers/HttpError.js";
 import User from "../models/user.js";
+
+const avatarsDir = path.resolve("public", "avatars");
 
 export const register = async (req, res) => {
 	const { email, password } = req.body;
 	const user = await User.findOne({ email });
 
-	if (user !== null) {
+	if (user) {
 		throw HttpError(409, "Email in use");
 	}
+
 	const hashPassword = await bcrypt.hash(password, 10);
-
-	const newUser = await User.create({ ...req.body, password: hashPassword });
-
+	const avatarURL = gravatar.url(email);
+	const newUser = await User.create({
+		...req.body,
+		password: hashPassword,
+		avatarURL,
+	});
 	res.status(201).json({
 		user: {
 			email: newUser.email,
@@ -78,4 +88,25 @@ export const patchSubscription = async (req, res) => {
 		throw HttpError(404, "Not found");
 	}
 	res.status(200).json(result);
+};
+
+export const updateAvatar = async (req, res) => {
+	const { _id } = req.user;
+
+	const { path: tempUpload, originalname } = req.file;
+	const filename = `${_id}_${originalname}`;
+
+	const resultUpload = path.join(avatarsDir, filename);
+
+	Jimp.read(tempUpload, (err, image) => {
+		if (err) throw HttpError(404, err);
+		image.resize(250, 250).write(resultUpload);
+	});
+
+	await fs.rename(tempUpload, resultUpload);
+
+	const avatarURL = path.join("avatars", filename);
+	await User.findByIdAndUpdate(_id, { avatarURL });
+
+	res.status(200).json({ avatarURL });
 };

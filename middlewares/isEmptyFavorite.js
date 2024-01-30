@@ -1,7 +1,7 @@
 import { HttpError } from "../helpers/index.js";
 
 const isEmptyFavorite = (req, res, next) => {
-	if (!Object.keys(req.body).length) {
+	if (!Object.keys(req.body.favorite).length) {
 		return next(HttpError(400, "missing field favorite"));
 	}
 	next();
