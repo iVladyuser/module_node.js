@@ -3,11 +3,14 @@ import {
 	logInSchema,
 	patchSubscriptionSchema,
 	registerSchema,
+	verifyEmailSchema,
 } from "../../models/user.js";
 import { ctrlWrapper, validateBody } from "../../decorators/index.js";
 import {
 	login,
 	register,
+	verifyEmail,
+	resendVerifyEmail,
 	getCurrent,
 	logout,
 	patchSubscription,
@@ -27,6 +30,14 @@ router.post(
 	isEmptyBody,
 	validateBody(registerSchema),
 	ctrlWrapper(register)
+);
+
+router.get("/verify/:verificationToken", ctrlWrapper(verifyEmail));
+
+router.post(
+	"/verify",
+	validateBody(verifyEmailSchema),
+	ctrlWrapper(resendVerifyEmail)
 );
 
 router.post(

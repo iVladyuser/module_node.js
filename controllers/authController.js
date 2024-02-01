@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import { nanoid } from "nanoid";
 import jwt from "jsonwebtoken";
 import gravatar from "gravatar";
 import path from "path";
@@ -7,7 +8,7 @@ import Jimp from "jimp";
 
 import HttpError from "../helpers/HttpError.js";
 import User from "../models/user.js";
-
+import sendEmail from "../helpers/sendEmail.js";
 const avatarsDir = path.resolve("public", "avatars");
 
 export const register = async (req, res) => {
@@ -20,16 +21,70 @@ export const register = async (req, res) => {
 
 	const hashPassword = await bcrypt.hash(password, 10);
 	const avatarURL = gravatar.url(email);
+
+	const { BASE_URL } = process.env;
+	const verificationToken = nanoid();
+
+	const verifyEmail = {
+		to: email,
+		from: "jw.listal@gmail.com",
+		subject: "Welcome to phonebook",
+		http: `<a target="_blank" href="${BASE_URL}/api/users/verify/${verificationToken}">Click to verify email</a>`,
+		text: `To confirm your registration please open the link ${BASE_URL}/api/users/verify/${verificationToken}`,
+	};
+	await sendEmail(verifyEmail);
+
 	const newUser = await User.create({
 		...req.body,
 		password: hashPassword,
 		avatarURL,
+		verificationToken,
 	});
 	res.status(201).json({
 		user: {
 			email: newUser.email,
 			subscription: newUser.subscription,
 		},
+	});
+};
+
+export const verifyEmail = async (req, res) => {
+	const { verificationToken } = req.params;
+
+	const user = await User.findOne({ verificationToken });
+	console.log(user);
+	if (user === null) {
+		throw HttpError(404, "User not found");
+	}
+	await User.findByIdAndUpdate(user._id, {
+		verify: true,
+		verificationToken: null,
+	});
+
+	res.status(200).json({
+		message: "Verification successful",
+	});
+};
+
+export const resendVerifyEmail = async (req, res) => {
+	const { email } = req.body;
+	const user = await User.findOne({ email });
+
+	if (user.verify) {
+		throw HttpError(400, "Verification has already been passed");
+	}
+	const { BASE_URL } = process.env;
+	const verifyEmail = {
+		to: email,
+		from: "jw.listal@gmail.com",
+		subject: "Welcome to phonebook",
+		http: `<a target="_blank" href="${BASE_URL}/api/auth/verify/${user.verificationToken}">Click to verify email</a>`,
+		text: `To confirm your registration please open the link ${BASE_URL}/api/auth/verify/${user.verificationToken}`,
+	};
+	await sendEmail(verifyEmail);
+
+	res.json({
+		message: "Verify email send",
 	});
 };
 
@@ -40,6 +95,10 @@ export const login = async (req, res) => {
 
 	if (!user) {
 		throw HttpError(401, "Email or password invalid");
+	}
+
+	if (!user.verify) {
+		throw HttpError(401, "Your account is not verified");
 	}
 
 	const passwordCompare = await bcrypt.compare(password, user.password);
